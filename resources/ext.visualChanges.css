@@ -1,0 +1,24 @@
+#visual-changes-menu {
+  height: 20px;
+  width: 60px;
+}
+ 
+/* For the start position of the menu */
+.visual-changes-menu-relative {
+  
+  float: right;
+}
+ 
+/* When scrolling down, fix the position of the menu at topright of the window */
+.visual-changes-menu-fixed {
+  z-index: 199;
+  /*margin-top: -75px;*/
+  /*margin-left: 81.5%;*/
+  position:fixed;
+  right: 0;
+  top: 0;
+}
+#logtable
+{
+    font-size: small;
+}
