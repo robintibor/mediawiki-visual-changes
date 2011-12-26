@@ -24,7 +24,7 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 	 * through getResult().
 	 */
 	public function execute() {
-                // get the two revisions
+                // get the two revisions test
                 $revisionFrom = $this->getParameter('revfrom');
                 $revisionTo = $this->getParameter('revto');
                 // get Diff between two revisions in their wikitext
