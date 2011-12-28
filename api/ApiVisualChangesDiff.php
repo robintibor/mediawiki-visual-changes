@@ -58,9 +58,10 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 							'parsedMergedRevisions' => $parsedWikiText) );
 	}
 	
-	// Merges Edits into one new wikitext
-	// return that wikitext
-	// Surrounds 
+	/* Merges Edits into one new wikitext
+	 * return that wikitext
+	 * Surrounds deletions by <del> tags and insertions by <ins> tags...
+	 */
 	public function mergeEdits(/* _Diff_Op array */ $edits) {
 				$mergedRevisions = "";
 				for ( $i = 0; $i < count( $edits ); $i++ ) {

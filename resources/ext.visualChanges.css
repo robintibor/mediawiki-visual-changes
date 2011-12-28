@@ -6,7 +6,6 @@
 /* For the start position of the menu */
 .visual-changes-menu-relative {
   
-  float: right;
 }
  
 /* When scrolling down, fix the position of the menu at topright of the window */
@@ -15,7 +14,8 @@
   /*margin-top: -75px;*/
   /*margin-left: 81.5%;*/
   position:fixed;
-  right: 0;
+  width: 50%;
+  left:25%;
   top: 0;
 }
 #logtable
