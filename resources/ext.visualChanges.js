@@ -35,18 +35,38 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
 								// PREPEND THE CONTENT TO THE BODY! :)
 								$( '#visual-changes-backward-button' ).show();
 								$( '#visual-changes-forward-button' ).show();
+								visualChangesController.handleMergedWikiText(data);
                             },
                             dataType: 'json',
                             async: true,
                             data: {
 								action: 'query',							
 								prop: 'visualdiff',
-								revfrom: '1',
-								revto: '3',
+								revfrom: '27',
+								revto: '26',
 								format: 'json'
                             }
                 });
 				visualChanges.goToNextRevision();
+			},
+			setBodyContent: function(newBodyContent)
+			{				
+				mw.util.$content.html( newBodyContent );
+			},
+			setLogDivContent: function(newLogDivContent)
+			{
+				$("#logdiv").html(newLogDivContent);
+			}
+		}
+		var visualChangesController =
+		{
+			handleMergedWikiText: function(json)
+			{ 
+				var debugText = json.visualDiff.debugText;
+				var parsedMergedRevisions = json.visualDiff.parsedMergedRevisions;
+				visualChangesUI.setLogDivContent(debugText);
+				visualChangesUI.setBodyContent(parsedMergedRevisions)
+				alert(debugText);
 			}
 		}
  
@@ -800,11 +820,12 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
                           mw.html.element( 'a',
                                 {id: 'visual-changes-forward-button',
                                   href: '#visualchanges'}, 'F' ) ) ) );
-                              // TODO: remove logtable!
+                              // TODO: remove logtable and logdiv!
             $( '#bodyContent' ).after( '<table id="logtable"><tr> <td colspan = "2" id="queryanswer"></td>' + 
                                     '<tr><td id="wikitext">Wikitext:</td><td id="oldwikitext">old Wikitext</td></tr>' +
                                  '<tr><td colspan = "2" id="diff">diff</td></tr>' +
                                  '<tr><td colspan = "2" id="mergeddiff">mergeddiff</td></tr></table>' );
+            $( '#bodyContent' ).after( '<div id="logdiv"></div>' );
         // If user scrolls below the position of
         // the visual-changes-menu, make the menu move to a fixed position on
         // the screen by changing the class (see ext.visualChanges.css
