@@ -1,0 +1,51 @@
+#visual-changes-menu {
+  height: 60px;
+}
+ 
+/* For the start position of the menu */
+.visual-changes-menu-relative {
+  
+}
+/* When scrolling down, fix the position of the menu at topright of the window */
+.visual-changes-menu-fixed {
+  z-index: 199;
+  /*margin-top: -75px;*/
+  /*margin-left: 81.5%;*/
+  position:fixed;
+  width: 70%;
+  left:25%;
+  top: 0;
+}
+.visual-changes-mediawiki-date
+{
+	display: none;
+}
+.visual-changes-time-entry
+{
+	width: 20px;
+}
+#visual-changes-fromdates
+{
+	float: left;
+}
+#visual-changes-todates
+{
+	float: right;
+}
+/* For the additions and deletions to the wikitext */
+.vc_addition {
+    background-color: #009900;
+}
+.vc_deletion {
+    background-color: #FFA500;
+}
+.diff-html-added  {
+    background-color: #009900;
+}
+.diff-html-removed {
+    background-color: #FFA500;
+}
+#logdiv
+{
+    font-size: small;
+}
