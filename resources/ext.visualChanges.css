@@ -39,6 +39,12 @@
 .vc_deletion {
     background-color: #FFA500;
 }
+.diff-html-added  {
+    background-color: #009900;
+}
+.diff-html-removed {
+    background-color: #FFA500;
+}
 #logdiv
 {
     font-size: small;

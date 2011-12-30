@@ -28,7 +28,7 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 	 */
 	public function execute() {
 		self::$debugText = "";
-		global $wgParser, $wgTitle, $wgLang;
+		global $wgParser;
 		// Get the two revisions
 		$requestParams = $this->extractRequestParams();
 		$revisionFrom;
@@ -88,17 +88,27 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 							'toText:' .	$toWikiText . "<br />" . "mergedText" .
 							$mergedWikiText .
 							self::$editsDebugString);
-
+        $htmlDiff = $this->getHtmlDiff( $fromWikiText, $toWikiText );
 		// return new html for page content mwcontentltr
 		$this->getResult()->addValue( null, 'visualDiff',
 						array( 'debugText' => self::$debugText,
 							'parsedMergedRevisions' => $mergedHtml,
 							'fromrev' => $revisionFrom->getId(),
-							'torev' => $revisionTo->getId() ) );
+							'torev' => $revisionTo->getId(),
+							'htmlDiff' => $htmlDiff ) );
 	}
-
-	public function getNewestRevisionBefore( $pageId, $timeStamp )
-	{
+	private function getHtmlDiff( $fromWikiText, $toWikiText ) {
+		global $wgParser;
+		$parserOptions = new ParserOptions();
+		$dummyTitle = Title::newFromText( 'dummyTitle' );
+		// parse wikitext
+		$parserOutput = $wgParser->parse( $fromWikiText, $dummyTitle, $parserOptions );
+		$fromHtml = $parserOutput->getText();
+		$parserOutput = $wgParser->parse( $toWikiText, $dummyTitle, $parserOptions );
+		$toHtml = $parserOutput->getText();
+		return html_diff($fromHtml, $toHtml);
+	}
+	public function getNewestRevisionBefore( $pageId, $timeStamp ) {
 		$this->resetQueryParams();
 		$earliestRevisionTime = Title::newFromID( $pageId )->getEarliestRevTime();
 		if ( $timeStamp < $earliestRevisionTime )
