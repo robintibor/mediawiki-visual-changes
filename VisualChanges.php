@@ -26,6 +26,8 @@ $wgExtensionMessagesFiles['VisualChanges'] = "$dir/VisualChanges.i18n.php";
 // Autoload necessary classes
 $wgAutoloadLocalClasses['VisualChangesHooks'] = "$dir/VisualChangesHooks.php";
 $wgAutoloadLocalClasses['ApiVisualChangesDiff'] = "$dir/api/ApiVisualChangesDiff.php";
+require_once ("$dir/htmlDiff/htmldiff.php");
+// TODO(Robin): find out if you can autoload classes from htmldiff isntead
 
 // Set Hooks
 $wgHooks['BeforePageDisplay'][] = 'VisualChangesHooks::addVisualChangeModule';
@@ -53,7 +55,7 @@ $wgResourceModules['ext.visualChanges'] = array(
 	'styles' => 'ext.visualChanges.css',
 	'messages' => array(
 	),
-	'dependencies' => array(
+	'dependencies' => array( 'jquery.ui.datepicker'
 	),
 ) + $commonModuleInfo;
 

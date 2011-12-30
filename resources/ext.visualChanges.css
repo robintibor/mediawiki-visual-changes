@@ -12,11 +12,14 @@
   /*margin-top: -75px;*/
   /*margin-left: 81.5%;*/
   position:fixed;
-  width: 50%;
+  width: 70%;
   left:25%;
   top: 0;
 }
-
+.visual-changes-mediawiki-date
+{
+	display: none;
+}
 .visual-changes-time-entry
 {
 	width: 20px;

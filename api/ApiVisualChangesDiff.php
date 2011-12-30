@@ -34,41 +34,44 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 		$revisionFrom;
 		$revisionTo;
 		// TODO(Robin): create stepbackwards parameter instead of just defaulting to one revision
-		// before ?
-		if ( isset ( $requestParams[ 'torev' ] ) ) {
+		// before or after?
+		if ( isset ( $requestParams[ 'fromrev' ] ) || isset ( $requestParams[ 'torev' ] ) ) {
 			// Get the the revision to diff to and the division to diff from
-			// by their ids or if the from id is not given 
-			// use the previous revision of the to revision
-			$revisionToId = $this->getParameter( 'torev' );
-			$revisionTo = Revision::newFromId( $revisionToId );
-			if ( isset ($requestParams[ 'fromrev' ]) ) {
-				$revisionFromId = $requestParams[ 'fromrev' ];
-				$revisionFrom = Revision::newFromId( $revisionFromId );
-			} else {
-				$revisionFrom = $revisionTo->getPrevious(); 
-			}
-		}	else if ( isset( $requestParams[ 'pageid' ] ) ) {
+			// if the from id is not given use previous revision of revision to diff to
+			// if to id is not given use next revision of revision to diff from
+			if ( isset($requestParams[ 'fromrev' ] ) )
+				$revisionFrom =  Revision::newFromId( $requestParams[ 'fromrev' ] );
+			if ( isset($requestParams[ 'torev' ] ) )
+				$revisionTo =  Revision::newFromId( $requestParams[ 'torev' ] );
+			if ( !isset($requestParams[ 'fromrev' ] ) )
+				$revisionFrom = $revisionTo->getPrevious();	
+			if ( !isset($requestParams[ 'torev' ] ) )
+				$revisionTo = $revisionFrom->getNext();
+			if ($revisionFrom == null)
+				$revisionFrom = $revisionTo;
+			else if ($revisionTo == null)
+				$revisionTo = $revisionFrom;
+			} else if ( isset( $requestParams[ 'pageid' ] ) ) {
 			// Get the revisions by the time to diff from and the time to diff to
 			// or use the newest revision as the revision to diff to
 			// if time to diff to is not given
 			$pageId = $requestParams[ 'pageid' ];
-			if ( isset( $requestParams[ 'fromtime' ] ) ) {
+			// TODO(Robin): check for existence of given page id
+			$testTitle = Title::newFromID($pageId);
+			if ($testTitle == null)
+				$this->dieUsage("page id doesnt exist: $pageId", 'pageid-doesnt-exist');
+			if ( isset( $requestParams[ 'fromtime' ] ) && isset( $requestParams[ 'totime' ] )) {
 				$revisionFrom = $this->getNewestRevisionBefore( $pageId, $requestParams[ 'fromtime' ] );
-			} else {
-				$this->dieUsage( 'page id given but totime  parameter missing', 'fromtime-missing' );
-			}
-			if ( isset( $requestParams[ 'totime' ] ) ) {
 				$revisionTo = $this->getNewestRevisionBefore( $pageId, $requestParams[ 'totime' ] );
 			} else {
-				$revisionTo = Revision::newFromPageId( $pageId );
-			}#
-			// TODO(Robin): remove all debugs:)
-			self::addToDebugText( $fromTime );
-			self::addToDebugText( 'from ' . $revisionFrom->getId() . ' to ' . 
-								 $revisionTo->getId() . '<br />' );
+				if (!isset( $requestParams[ 'fromtime' ] ) )
+					$this->dieUsage( 'page id given but fromtime parameter missing', 'fromtime-missing' );
+				if (!isset( $requestParams[ 'totime' ] ) )
+					$this->dieUsage( 'page id given but totime parameter missing', 'totime-missing' );			
+			}
 		} else { 
-			$this->dieUsage("Neither torev nor pageid parameter given...", "torev-or-pageid-missing");		
-			
+			$this->dieUsage("Neither torev not fromrev nor pageid parameter given...", 
+							"fromrev-or-torev-or-pageid-missing");
 		}
 		$pageId = $revisionTo->getPage();
 		$fromWikiText = $revisionFrom->getText();
@@ -79,21 +82,24 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 		$fromTitle = $revisionFrom->getTitle();
 		// parse wikitext
 		$parserOutput = $wgParser->parse( $mergedWikiText, $fromTitle, $parserOptions );
-		$parsedWikiText = $parserOutput->getText();
+		$mergedHtml = $parserOutput->getText();
 		$revisionFrom->getPrevious();
 		self::addToDebugText('fromText:'  .$fromWikiText .
-									'toText:' .	$toWikiText . "<br />" . "mergedText" .
+							'toText:' .	$toWikiText . "<br />" . "mergedText" .
 							$mergedWikiText .
 							self::$editsDebugString);
-		
+
 		// return new html for page content mwcontentltr
 		$this->getResult()->addValue( null, 'visualDiff',
 						array( 'debugText' => self::$debugText,
-							'parsedMergedRevisions' => $parsedWikiText) );
+							'parsedMergedRevisions' => $mergedHtml,
+							'fromrev' => $revisionFrom->getId(),
+							'torev' => $revisionTo->getId() ) );
 	}
 
 	public function getNewestRevisionBefore( $pageId, $timeStamp )
 	{
+		$this->resetQueryParams();
 		$earliestRevisionTime = Title::newFromID( $pageId )->getEarliestRevTime();
 		if ( $timeStamp < $earliestRevisionTime )
 			$timeStamp = $earliestRevisionTime;
