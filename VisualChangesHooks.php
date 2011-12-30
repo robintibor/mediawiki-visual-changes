@@ -10,7 +10,7 @@ class VisualChangesHooks {
 
 	/**
 	 * Adds the module to the page,
-         * Function is added to Hook: OutputPageParserOutput
+         * Function is added to Hook: BeforePageDisplay
 	 *
 	 * @param out OutputPage
 	 * @param $parseroutput TODO
