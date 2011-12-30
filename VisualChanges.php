@@ -28,13 +28,18 @@ $wgAutoloadLocalClasses['VisualChangesHooks'] = "$dir/VisualChangesHooks.php";
 $wgAutoloadLocalClasses['ApiVisualChangesDiff'] = "$dir/api/ApiVisualChangesDiff.php";
 
 // Set Hooks
-$wgHooks['BeforePageDisplay'][] = 'VisualChangesHooks::addJavaScriptModule';
-$wgHooks['ArticleViewHeader'][] = 'VisualChangesHooks::addHeaderButtons';
-
+$wgHooks['BeforePageDisplay'][] = 'VisualChangesHooks::addVisualChangeModule';
 
 // API
 $wgAPIPropModules['visualdiff'] = 'ApiVisualChangesDiff';
 
+// TESTS
+$wgHooks['UnitTestsList'][] = 'visualChangesRegisterUnitTests';
+function visualChangesRegisterUnitTests( &$files ) {
+        $testDir = dirname( __FILE__ ) . '/';
+        $files[] = $testDir . 'api/ApiVisualChangesDiffTest.php';
+        return true;
+}
 // @TODO check if this is necessary, i.e. if there are other modules,
 // that will be added...
 // Resource loader Information

@@ -1,13 +1,11 @@
 #visual-changes-menu {
-  height: 20px;
-  width: 60px;
+  height: 60px;
 }
  
 /* For the start position of the menu */
 .visual-changes-menu-relative {
   
 }
- 
 /* When scrolling down, fix the position of the menu at topright of the window */
 .visual-changes-menu-fixed {
   z-index: 199;
@@ -18,9 +16,25 @@
   left:25%;
   top: 0;
 }
-#logtable
+
+.visual-changes-time-entry
 {
-    font-size: small;
+	width: 20px;
+}
+#visual-changes-fromdates
+{
+	float: left;
+}
+#visual-changes-todates
+{
+	float: right;
+}
+/* For the additions and deletions to the wikitext */
+.vc_addition {
+    background-color: #009900;
+}
+.vc_deletion {
+    background-color: #FFA500;
 }
 #logdiv
 {

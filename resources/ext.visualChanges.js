@@ -7,27 +7,14 @@
  
 (function ( $ ) {
     /* @TODO: check how to add portlet links?
-    alert(mw.config.get('wgTitle'));
 mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
  
-        // for merging later on, specify keywords to mark deletions and additions
-        // in the wikitext...
-        var addedKeyword = "_vc__add_";
-        var endAddedKeyword = "_vc__endadd_";
-        var deletedKeyword = "_vc__delete_";
-        var endDeletedKeyword = "_vc__enddelete_";
 		
 		// functions for the buttons...
 		var visualChangesUI = {
 			clickBackwardButton : function(){
 				$( '#visual-changes-forward-button' ).hide();
-				$( '#visual-changes-backward-button' ).hide();
-				visualChanges.goToPreviousRevision();
-			},
-			clickForwardButton: function() {
-				$( '#visual-changes-forward-button' ).hide();
-				$( '#visual-changes-backward-button' ).hide();
-				// TEST: Call own API...
+				$( '#visual-changes-backward-button' ).hide();// TEST: Call own API...
 				$.ajax({
                             type: 'GET',
                             url: mw.util.wikiScript( 'api' ),
@@ -42,14 +29,28 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
                             data: {
 								action: 'query',							
 								prop: 'visualdiff',
-								revfrom: '27',
-								revto: '26',
+								pageid: mw.config.get('wgArticleId'),
+								fromtime: '20111023000000',
 								format: 'json'
                             }
                 });
 			},
-			setBodyContent: function(newBodyContent)
-			{				
+			clickForwardButton: function() {
+				$( '#visual-changes-forward-button' ).hide();
+				$( '#visual-changes-backward-button' ).hide();				
+			},
+			clickSubmitTimesButton: function()
+			{
+				// get days and times from and to fields
+				// send them to server
+				var toDate = $( '#vc-from-date-entry' ).attr('value');
+				var toHour = $( '#vc-from-hour-entry' ).attr('value');
+				var toMinute = $( '#vc-from-minute-entry' ).attr('value');
+				var toSecond = $( '#vc-from-second-entry' ).attr('value');
+				alert("to timestring: " + toDate + toHour + toMinute + toSecond);
+			},
+			setBodyContent: function( newBodyContent )
+			{
 				mw.util.$content.html( newBodyContent );
 			},
 			setLogDivContent: function(newLogDivContent)
@@ -69,10 +70,9 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
 				var parsedMergedRevisions = json.visualDiff.parsedMergedRevisions;
 				visualChangesUI.setLogDivContent(debugText);
 				visualChangesUI.setBodyContent(parsedMergedRevisions)
-				alert(debugText);
 			}
 		}
-
+		// TODO: make var visualChanges?
         // visualChanges is the main class holding all important informations
         visualChanges = {
 			article: {
@@ -83,8 +83,8 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
 				// revisionList is only storing ids of the revisions
 				revisionInfos: []
 			},
-			currentRevision : 0,
-			currentRevisionToDiffTo : 0,
+			currentRevisionId : 0,
+			currentRevisionToDiffToId : 0,
 			getRevisionStartId: function() {
 				var oldIdIndex = document.URL.indexOf('&oldid=');
 				if (oldIdIndex != -1)
@@ -123,23 +123,32 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
 	};
         if (mw.config.get( 'wgAction' ) != 'view' || !mw.config.get( 'wgIsArticle' ) )
             return;
-        // initialize menu...
-        $( '#content' ).prepend(mw.html.element('div', 
-                        {id: 'visual-changes-menu',
-                        'class': 'visual-changes-menu-relative'},
-                        new mw.html.Raw(
-                        mw.html.element( 'a',
-                                    {id: 'visual-changes-backward-button',
-                                      href: '#visualchanges'}, 'B' ) +
-                          mw.html.element( 'a',
-                                {id: 'visual-changes-forward-button',
-                                  href: '#visualchanges'}, 'F' ) ) ) );
-                              // TODO: remove logtable and logdiv!
-            $( '#bodyContent' ).after( '<table id="logtable"><tr> <td colspan = "2" id="queryanswer"></td>' + 
-                                    '<tr><td id="wikitext">Wikitext:</td><td id="oldwikitext">old Wikitext</td></tr>' +
-                                 '<tr><td colspan = "2" id="diff">diff</td></tr>' +
-                                 '<tr><td colspan = "2" id="mergeddiff">mergeddiff</td></tr></table>' );
-            $( '#bodyContent' ).after( '<div id="logdiv"></div>' );
+		visualChanges.currentRevisionId = visualChanges.getRevisionStartId();
+		visualChanges.currentRevisionToDiffToId = visualChanges.getRevisionStartId();
+        // initialize menu... 
+		// TODO(RObin): find better way/point/position to initialize the menu?
+		var htmlMenu = '<div id="visual-changes-menu" class="visual-changes-menu-relative">\n\
+							<div id = "visual-changes-datepickers"> \n\
+								<div id = "visual-changes-fromdates">\n\
+									<input type="text" id="vc-from-date-entry"  class="visual-changes-date-entry"/>\n\
+									<input type="number" value="0" id="vc-from-hour-entry" class = "visual-changes-time-entry"/>\n\
+									<input type="number" value="0"id="vc-from-minute-entry" class = "visual-changes-time-entry"/>\n\
+									<input type="number" value="0" id="vc-from-second-entry" class = "visual-changes-time-entry"/>\n\
+								</div>\n\
+								<input type="button" id="visual-changes-submittimes-button" value="Show Changes"></input> \n\
+								<div id = "visual-changes-todates">\n\
+									<input type="text" id="vc-to-date-entry"  class = "visual-changes-date-entry"/>\n\
+									<input type="number" value="0" id="vc-to-hour-entry" class = "visual-changes-time-entry"/>\n\
+									<input type="number" value="0" id="vc-to-minute-entry" class = "visual-changes-time-entry"/>\n\
+									<input type="number" value="0" id="vc-to-second-entry" class = "visual-changes-time-entry"/>\n\
+								</div>\n\
+							</div>\n\
+							<a id="visual-changes-backward-button" href="#">B</a>\n\
+							<a id="visual-changes-forward-button" href="#">F</a>\n\
+						</div>'
+        $( '#content' ).prepend(htmlMenu);
+		// TODO: remove logdiv!
+        $( '#bodyContent' ).after( '<div id="logdiv"></div>' );
         // If user scrolls below the position of
         // the visual-changes-menu, make the menu move to a fixed position on
         // the screen by changing the class (see ext.visualChanges.css
@@ -164,7 +173,10 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
                 }
             }
         );
+		//mw.loader.load('ui.slider');
+		//$('#logdiv').slider();
         // add button click functions
+        $( '#visual-changes-submittimes-button' ).click( visualChangesUI.clickSubmitTimesButton );
         $( '#visual-changes-forward-button' ).click( visualChangesUI.clickForwardButton );
         $( '#visual-changes-backward-button' ).click( visualChangesUI.clickBackwardButton );
 })( jQuery )

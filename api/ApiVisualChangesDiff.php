@@ -6,7 +6,8 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName);
 	}
-
+	static $editsDebugString = "";
+	static $debugText = "";
 	/**
 	 * Get the revisions requested and return a html string 
 	 * visualizing the changes inbetween them
@@ -26,43 +27,115 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 	 * through getResult().
 	 */
 	public function execute() {
+		self::$debugText = "";
 		global $wgParser, $wgTitle, $wgLang;
-		// get the two revisions
-		$revisionFromId = $this->getParameter('revfrom');
-		$revisionToId = $this->getParameter('revto');
-		$revisionFrom = Revision::newFromId($revisionFromId);
-		$revisionTo = Revision::newFromId($revisionToId);
+		// Get the two revisions
+		$requestParams = $this->extractRequestParams();
+		$revisionFrom;
+		$revisionTo;
+		// TODO(Robin): create stepbackwards parameter instead of just defaulting to one revision
+		// before ?
+		if ( isset ( $requestParams[ 'torev' ] ) ) {
+			// Get the the revision to diff to and the division to diff from
+			// by their ids or if the from id is not given 
+			// use the previous revision of the to revision
+			$revisionToId = $this->getParameter( 'torev' );
+			$revisionTo = Revision::newFromId( $revisionToId );
+			if ( isset ($requestParams[ 'fromrev' ]) ) {
+				$revisionFromId = $requestParams[ 'fromrev' ];
+				$revisionFrom = Revision::newFromId( $revisionFromId );
+			} else {
+				$revisionFrom = $revisionTo->getPrevious(); 
+			}
+		}	else if ( isset( $requestParams[ 'pageid' ] ) ) {
+			// Get the revisions by the time to diff from and the time to diff to
+			// or use the newest revision as the revision to diff to
+			// if time to diff to is not given
+			$pageId = $requestParams[ 'pageid' ];
+			if ( isset( $requestParams[ 'fromtime' ] ) ) {
+				$revisionFrom = $this->getNewestRevisionBefore( $pageId, $requestParams[ 'fromtime' ] );
+			} else {
+				$this->dieUsage( 'page id given but totime  parameter missing', 'fromtime-missing' );
+			}
+			if ( isset( $requestParams[ 'totime' ] ) ) {
+				$revisionTo = $this->getNewestRevisionBefore( $pageId, $requestParams[ 'totime' ] );
+			} else {
+				$revisionTo = Revision::newFromPageId( $pageId );
+			}#
+			// TODO(Robin): remove all debugs:)
+			self::addToDebugText( $fromTime );
+			self::addToDebugText( 'from ' . $revisionFrom->getId() . ' to ' . 
+								 $revisionTo->getId() . '<br />' );
+		} else { 
+			$this->dieUsage("Neither torev nor pageid parameter given...", "torev-or-pageid-missing");		
+			
+		}
+		$pageId = $revisionTo->getPage();
 		$fromWikiText = $revisionFrom->getText();
 		$toWikiText = $revisionTo->getText();
+		$mergedWikiText = self::mergeWikiTexts($fromWikiText, $toWikiText);
+		
+		$parserOptions = new ParserOptions();
+		$fromTitle = $revisionFrom->getTitle();
+		// parse wikitext
+		$parserOutput = $wgParser->parse( $mergedWikiText, $fromTitle, $parserOptions );
+		$parsedWikiText = $parserOutput->getText();
+		$revisionFrom->getPrevious();
+		self::addToDebugText('fromText:'  .$fromWikiText .
+									'toText:' .	$toWikiText . "<br />" . "mergedText" .
+							$mergedWikiText .
+							self::$editsDebugString);
+		
+		// return new html for page content mwcontentltr
+		$this->getResult()->addValue( null, 'visualDiff',
+						array( 'debugText' => self::$debugText,
+							'parsedMergedRevisions' => $parsedWikiText) );
+	}
+
+	public function getNewestRevisionBefore( $pageId, $timeStamp )
+	{
+		$earliestRevisionTime = Title::newFromID( $pageId )->getEarliestRevTime();
+		if ( $timeStamp < $earliestRevisionTime )
+			$timeStamp = $earliestRevisionTime;
+		// query the revision table for oldest revision of given page
+		// since given time stamp ...
+		$this->addTables( 'revision' );
+		$this->addFields( '*' );
+		$sort = false;   // we need to sort by rev_timestamp descending :)
+		$this->addWhereFld('rev_page', $pageId);
+		$this->addTimestampWhereRange( 'rev_timestamp', 'older', $timeStamp,
+										null, $sort );
+		$this->addOption( 'ORDER BY', 'rev_timestamp DESC' );
+		$this->addOption( 'LIMIT', 1 );
+		$queryResult = $this->select( __METHOD__ );
+		assert ( $queryResult->numRows() == 1 );
+		return Revision::newFromRow ($queryResult->current());
+	}
+
+	private static function addToDebugText( $string ) {
+		self::$debugText .= $string;
+	}
+
+	public static function mergeWikiTexts( $fromWikiText, $toWikiText ) {
 		$fromLines = explode("\n", $fromWikiText);
 		$toLines = explode("\n", $toWikiText);
 		// get the wikitext-diff between the two revisions
 		$differenceEngine = new _DiffEngine();
 		$edits = $differenceEngine->diff( $fromLines, $toLines );
-
-		// add special words to old wikitext
-		$editsDebugString = $this->editsToDebugString( $edits );
-		$mergedWikiText = $this->mergeEdits( $edits );
-		$parserOptions = new ParserOptions();
-		$dummyTitle = $revisionFrom->getTitle();
-		// parse wikitext
-		$parserOutput = $wgParser->parse( $mergedWikiText, $dummyTitle, $parserOptions );
-		$parsedWikiText = $parserOutput->getText();
-		// replace special words by colors etc
-		// return new html for page content mwcontentltr
-		$this->getResult()->addValue( null, 'visualDiff',
-						array( 'debugText' => 'fromText:'  .$fromWikiText .
-									'toText:' .	$toWikiText . "<br />" . "mergedText" .
-							$mergedWikiText .
-							$editsDebugString,
-							'parsedMergedRevisions' => $parsedWikiText) );
+		// merge wikitexts highlighting the changes with appropriate
+		// <del> (for deletion) <ins> (for addition) and <span class ="change"> 
+		// (for changed words) tags
+		self::$editsDebugString = self::editsToDebugString( $edits );
+		$mergedWikiText = self::mergeEdits( $edits );
+		return $mergedWikiText;
 	}
-	
 	/* Merges Edits into one new wikitext
 	 * return that wikitext
-	 * Surrounds deletions by <del> tags and insertions by <ins> tags...
+	 * Surrounds deletions by <span class="vc_deletion"> tags and 
+	 * insertions by <span class="vc_addition"> tags...
+	 * TODO: change to span class= deletion span class = addition :)
 	 */
-	public function mergeEdits(/* _Diff_Op array */ $edits) {
+	private static function mergeEdits(/* _Diff_Op array */ $edits) {
 				$mergedRevisions = "";
 				for ( $i = 0; $i < count( $edits ); $i++ ) {
 					if ( $i > 0 )
@@ -72,24 +145,28 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 					if ( $editType === 'copy'){
 						$mergedRevisions .= implode( "\n" , $currentEdit->orig );
 					}
-					else if ( $editType === 'delete' ) {						
-						$mergedRevisions .= '<del>' . "\n" .
-											implode( "\n" , $currentEdit->orig ) . "\n" . 
-											'</del>' ;
+					else if ( $editType === 'delete' ) {				
+						$mergedRevisions .= '<span class="vc_deletion">' . "\n" .
+											implode( "\n</span><span class=\"vc_deletion\">" , 
+													$currentEdit->orig ) . "\n" . 
+											'</span>' ;
 					}
 					else if ( $editType === 'add' ){						
-						$mergedRevisions .= '<ins>' . "\n" .
-											implode( "\n" , $currentEdit->closing ) . "\n" . 
-											'</ins>' ;
+						$mergedRevisions .= '<span class="vc_addition">' . "\n" .
+											implode( "\n</span><span class=\"vc_addition\">" , 
+													$currentEdit->closing ) . "\n" . 
+											'</span>' ;
 					}
 					else if ( $editType === 'change' ){						
-						$mergedRevisions .= '<del>' . "\n" .
-											implode( "\n" , $currentEdit->orig ) . "\n" . 
-											'</del>' ;
-						$mergedRevisions .= "\n";
-						$mergedRevisions .= '<ins>' . "\n" .
-											implode( "\n" , $currentEdit->closing ) . "\n" . 
-											'</ins>';
+						$mergedRevisions .= '<span class="vc_deletion">' . "\n" .
+											implode( "\n</span><span class=\"vc_deletion\">" , 
+													$currentEdit->orig ) . "\n" . 
+											'</span>' ;
+						$mergedRevisions .= "\n";						
+						$mergedRevisions .= '<span class="vc_addition">' . "\n" .
+											implode( "\n</span><span class=\"vc_addition\">\n" , 
+													$currentEdit->closing ) . "\n" . 
+											'</span>' ;
 					}
 					else {
 						wfDebug('unknown Edit type when merging edits: ' . $editType);
@@ -98,68 +175,21 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 				return $mergedRevisions;
 	}
 	// String representation of edits for debugging
-	public function editsToDebugString( /* _DIFF_OP array */ $edits )	{
+	private static function editsToDebugString( /* _DIFF_OP array */ $edits )	{
 		$editString = "Editsize: " . count( $edits ) . "<br />";
 		for ( $i = 0; $i < count( $edits ); $i++ )
 		{
-			$editString .= $edits[ $i ]->type . "<br />";
-			$editString .= "original (" .$edits[ $i ]->norig() . "): " .
-						   implode( $edits[ $i ]->orig ) . "<br />";
-			$editString .= "closing (" .$edits[ $i ]->nclosing() . "): " .
-						   implode( $edits[ $i ]->closing ). " <br />";
+			$editType = $edits[ $i ]->type;
+			$editString .= $editType . "<br />";
+			if ($editType === 'delete' || $editType === 'copy' || $editType === 'change' )
+				$editString .= "original (" .$edits[ $i ]->norig() . "): " .
+							   implode( $edits[ $i ]->orig ) . "<br />";
+			if ($editType === 'add' || $editType === 'change')
+				$editString .= "closing (" .$edits[ $i ]->nclosing() . "): " .
+							   implode( $edits[ $i ]->closing ). " <br />";
 		}
 		return $editString;
 	}
-	// remaining here for possible future use: WARNING INCOMPLETE CODE!!
-	// possibly use this for liens that changed? to merge the diff of just one
-	// line? but also check other existing functions first...
-		// Merge the diffs to get a new wikitext with special characters inserted
-	// to mark the changes (additions, deletions, swaps
-	// public function mergeDiffs( /* char array */ $originalLines,
-	//							/* char array */$newLines, 
-	//							/* boolean array */ $added,
-	//							/* boolean array */ $removed)
-	/*{
-		$deletedKeyword = 
-		// partly copied from _DiffEngine->diff() function
-		// Compute the edit operations.
-		$originalLength = sizeof( $originalLines );
-		$newLength = sizeof( $newLines );
-
-		$newWikiText = "";
-		$edits = array();
-		$originalIndex = $newIndex = 0;
-		while ( $originalIndex < $originalLength || $newIndex < $newLength ) {
-			assert( $newLength < $newIndex || $added[$newIndex] );
-			assert( $originalIndex < $originalLength || $removed[$originalIndex] );
-
-			// Add parts that are the same in both texts...
-			while ( $originalIndex < $originalLength && $newIndex < $newLength
-			&& !$removed[$originalIndex] && !$added[$newIndex] ) {
-				// chars should be the same
-				assert($originalLines[$originalIndex] == $newLines[$newIndex]);
-				$originalIndex++;
-				$newIndex++;
-			}
-			$deletedPart = "";
-			while ( $originalIndex < $originalLength && $removed[$originalIndex] ) {
-				$deletedPart .= $originalLines[$originalIndex];
-				$originalIndex++;
-			}
-			$add = array();
-			while ( $yi < $n_to && $this->ychanged[$yi] )  {
-				$add[] = $to_lines[$yi++];
-			}
-
-			if ( $delete && $add ) {
-				$edits[] = new _DiffOp_Change( $delete, $add );
-			} elseif ( $delete ) {
-				$edits[] = new _DiffOp_Delete( $delete );
-			} elseif ( $add ) {
-				$edits[] = new _DiffOp_Add( $add );
-			}
-		}
-	}*/
 	/**
 	 * Returns a string that identifies the version of the extending class.
 	 * Typically includes the class name, the svn revision, timestamp, and
@@ -173,14 +203,27 @@ class ApiVisualChangesDiff extends ApiQueryBase {
     
     protected function getAllowedParams() {
 		return array(
-			'revfrom' => array(
-				ApiBase::PARAM_REQUIRED => true,
+			'torev' => array(
+				ApiBase::PARAM_REQUIRED => false,
 				ApiBase::PARAM_TYPE => 'integer'
 			),
-			'revto' => array(
-				ApiBase::PARAM_REQUIRED => true,
+			'fromrev' => array(
+				ApiBase::PARAM_REQUIRED => false,
 				ApiBase::PARAM_TYPE => 'integer'
+			),
+			'pageid' => array( // TODO: rename as articleid?
+				ApiBase::PARAM_REQUIRED => false,
+				ApiBase::PARAM_TYPE => 'integer'
+			),
+			'totime' => array(
+				ApiBase::PARAM_REQUIRED => false,
+				ApiBase::PARAM_TYPE => 'string'
+			),
+			'fromtime' => array(
+				ApiBase::PARAM_REQUIRED => false,
+				ApiBase::PARAM_TYPE => 'string'
 			)
+			
 		);
 	}
 }
