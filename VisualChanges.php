@@ -24,6 +24,7 @@ $dir = dirname( __FILE__ );
 $wgExtensionMessagesFiles['VisualChanges'] = "$dir/VisualChanges.i18n.php";
 
 // Autoload necessary classes
+$wgAutoloadLocalClasses['VisualChangesDiff'] = "$dir/VisualChangesDiff.php";
 $wgAutoloadLocalClasses['VisualChangesHooks'] = "$dir/VisualChangesHooks.php";
 $wgAutoloadLocalClasses['ApiVisualChangesDiff'] = "$dir/api/ApiVisualChangesDiff.php";
 require_once ("$dir/htmlDiff/htmldiff.php");
@@ -42,6 +43,8 @@ function visualChangesRegisterUnitTests( &$files ) {
         $files[] = $testDir . 'api/ApiVisualChangesDiffTest.php';
         return true;
 }
+ // javascript tests
+$wgHooks['ResourceLoaderTestModules'][] = 'VisualChangesHooks::addJavaScriptTests';
 // @TODO check if this is necessary, i.e. if there are other modules,
 // that will be added...
 // Resource loader Information
