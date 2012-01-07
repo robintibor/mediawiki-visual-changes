@@ -19,5 +19,8 @@ class VisualChangesHooks {
         $out->addModules( 'ext.visualChanges' );
         return true;
     }
+	public static function addJavaScriptTests( &$testModules, &$rssourceLoader ) {
+		
+	}
 }
 ?>
