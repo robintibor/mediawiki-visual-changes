@@ -6,7 +6,6 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 	public function __construct( $query, $moduleName ) {
 		parent::__construct( $query, $moduleName);
 	}
-	static $editsDebugString = "";
 	static $debugText = "";
 	/**
 	 * Get the revisions requested and return a html string 
@@ -76,40 +75,24 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 		$pageId = $revisionTo->getPage();
 		$fromWikiText = $revisionFrom->getText();
 		$toWikiText = $revisionTo->getText();
-		$mergedWikiText = self::mergeWikiTexts($fromWikiText, $toWikiText);
-		
-		$parserOptions = new ParserOptions();
 		$fromTitle = $revisionFrom->getTitle();
-		// parse wikitext
-		$parserOutput = $wgParser->parse( $mergedWikiText, $fromTitle, $parserOptions );
-		$mergedHtml = $parserOutput->getText();
-		$revisionFrom->getPrevious();
+        $htmlDiff = self::getHtmlDiff( $fromWikiText, $toWikiText,
+													$fromTitle );
 		self::addToDebugText('fromText:'  .$fromWikiText .
 							'toText:' .	$toWikiText . "<br />" . "mergedText" .
 							$mergedWikiText .
-							self::$editsDebugString);
-        $htmlDiff = $this->getHtmlDiff( $fromWikiText, $toWikiText );
+							VisualChangesDiff::$editsDebugString);
 		// return new html for page content mwcontentltr
 		$this->getResult()->addValue( null, 'visualDiff',
 						array( 'debugText' => self::$debugText,
-							'parsedMergedRevisions' => $mergedHtml,
 							'fromrev' => $revisionFrom->getId(),
 							'torev' => $revisionTo->getId(),
 							'htmlDiff' => $htmlDiff ) );
 	}
-	private function getHtmlDiff( $fromWikiText, $toWikiText ) {
-		global $wgParser;
-		$parserOptions = new ParserOptions();
-		$dummyTitle = Title::newFromText( 'dummyTitle' );
-		// parse wikitext
-		$parserOutput = $wgParser->parse( $fromWikiText, $dummyTitle, $parserOptions );
-		$fromHtml = $parserOutput->getText();
-		$parserOutput = $wgParser->parse( $toWikiText, $dummyTitle, $parserOptions );
-		$toHtml = $parserOutput->getText();
-		return html_diff($fromHtml, $toHtml);
-	}
+
 	public function getNewestRevisionBefore( $pageId, $timeStamp ) {
 		$this->resetQueryParams();
+		// make sure we get any result by checking revision time is not to early
 		$earliestRevisionTime = Title::newFromID( $pageId )->getEarliestRevTime();
 		if ( $timeStamp < $earliestRevisionTime )
 			$timeStamp = $earliestRevisionTime;
@@ -119,93 +102,33 @@ class ApiVisualChangesDiff extends ApiQueryBase {
 		$this->addFields( '*' );
 		$sort = false;   // we need to sort by rev_timestamp descending :)
 		$this->addWhereFld('rev_page', $pageId);
-		$this->addTimestampWhereRange( 'rev_timestamp', 'older', $timeStamp,
-										null, $sort );
+		$start = $timeStamp;
+		$end = null;
+		$this->addTimestampWhereRange( 'rev_timestamp', 'older', $start, $end,
+									   $sort );
 		$this->addOption( 'ORDER BY', 'rev_timestamp DESC' );
 		$this->addOption( 'LIMIT', 1 );
 		$queryResult = $this->select( __METHOD__ );
 		assert ( $queryResult->numRows() == 1 );
-		return Revision::newFromRow ($queryResult->current());
+		return Revision::newFromRow ( $queryResult->current() );
 	}
 
 	private static function addToDebugText( $string ) {
 		self::$debugText .= $string;
 	}
 
-	public static function mergeWikiTexts( $fromWikiText, $toWikiText ) {
-		$fromLines = explode("\n", $fromWikiText);
-		$toLines = explode("\n", $toWikiText);
-		// get the wikitext-diff between the two revisions
-		$differenceEngine = new _DiffEngine();
-		$edits = $differenceEngine->diff( $fromLines, $toLines );
-		// merge wikitexts highlighting the changes with appropriate
-		// <del> (for deletion) <ins> (for addition) and <span class ="change"> 
-		// (for changed words) tags
-		self::$editsDebugString = self::editsToDebugString( $edits );
-		$mergedWikiText = self::mergeEdits( $edits );
-		return $mergedWikiText;
+	public static function getHtmlDiff( $fromWikiText, $toWikiText, 
+										/*Title*/ $wikiTitle ) {
+		global $wgParser;
+		$parserOptions = new ParserOptions();
+		// parse wikitext
+		$parserOutput = $wgParser->parse( $fromWikiText, $wikiTitle, $parserOptions );
+		$fromHtml = $parserOutput->getText();
+		$parserOutput = $wgParser->parse( $toWikiText, $wikiTitle, $parserOptions );
+		$toHtml = $parserOutput->getText();
+		return html_diff($fromHtml, $toHtml);
 	}
-	/* Merges Edits into one new wikitext
-	 * return that wikitext
-	 * Surrounds deletions by <span class="vc_deletion"> tags and 
-	 * insertions by <span class="vc_addition"> tags...
-	 * TODO: change to span class= deletion span class = addition :)
-	 */
-	private static function mergeEdits(/* _Diff_Op array */ $edits) {
-				$mergedRevisions = "";
-				for ( $i = 0; $i < count( $edits ); $i++ ) {
-					if ( $i > 0 )
-						$mergedRevisions .= "\n";
-					$currentEdit = $edits[ $i ];
-					$editType = $currentEdit->type;
-					if ( $editType === 'copy'){
-						$mergedRevisions .= implode( "\n" , $currentEdit->orig );
-					}
-					else if ( $editType === 'delete' ) {				
-						$mergedRevisions .= '<span class="vc_deletion">' . "\n" .
-											implode( "\n</span><span class=\"vc_deletion\">" , 
-													$currentEdit->orig ) . "\n" . 
-											'</span>' ;
-					}
-					else if ( $editType === 'add' ){						
-						$mergedRevisions .= '<span class="vc_addition">' . "\n" .
-											implode( "\n</span><span class=\"vc_addition\">" , 
-													$currentEdit->closing ) . "\n" . 
-											'</span>' ;
-					}
-					else if ( $editType === 'change' ){						
-						$mergedRevisions .= '<span class="vc_deletion">' . "\n" .
-											implode( "\n</span><span class=\"vc_deletion\">" , 
-													$currentEdit->orig ) . "\n" . 
-											'</span>' ;
-						$mergedRevisions .= "\n";						
-						$mergedRevisions .= '<span class="vc_addition">' . "\n" .
-											implode( "\n</span><span class=\"vc_addition\">\n" , 
-													$currentEdit->closing ) . "\n" . 
-											'</span>' ;
-					}
-					else {
-						wfDebug('unknown Edit type when merging edits: ' . $editType);
-					}
-				}
-				return $mergedRevisions;
-	}
-	// String representation of edits for debugging
-	private static function editsToDebugString( /* _DIFF_OP array */ $edits )	{
-		$editString = "Editsize: " . count( $edits ) . "<br />";
-		for ( $i = 0; $i < count( $edits ); $i++ )
-		{
-			$editType = $edits[ $i ]->type;
-			$editString .= $editType . "<br />";
-			if ($editType === 'delete' || $editType === 'copy' || $editType === 'change' )
-				$editString .= "original (" .$edits[ $i ]->norig() . "): " .
-							   implode( $edits[ $i ]->orig ) . "<br />";
-			if ($editType === 'add' || $editType === 'change')
-				$editString .= "closing (" .$edits[ $i ]->nclosing() . "): " .
-							   implode( $edits[ $i ]->closing ). " <br />";
-		}
-		return $editString;
-	}
+
 	/**
 	 * Returns a string that identifies the version of the extending class.
 	 * Typically includes the class name, the svn revision, timestamp, and

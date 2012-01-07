@@ -192,9 +192,9 @@ mw.util.addPortletLink('p-tb', 'http://mediawiki.org/', 'MediaWiki.org');*/
 			$( '#visual-changes-backward-button' ).show();
 			$( '#visual-changes-forward-button' ).show();
 			var debugText = json.visualDiff.debugText;
-			var parsedMergedRevisions = json.visualDiff.parsedMergedRevisions;
+			var htmlDiff = json.visualDiff.htmlDiff;
 			visualChangesUI.setLogDivContent(debugText);
-			visualChangesUI.setBodyContent(parsedMergedRevisions);
+			visualChangesUI.setBodyContent(htmlDiff);
 			visualChanges.fromRevisionId = json.visualDiff.fromrev;
 			visualChanges.toRevisionId = json.visualDiff.torev;
 		}
