@@ -1,36 +1,37 @@
 #visual-changes-menu {
   height: 60px;
+  display: none;
 }
- 
 /* For the start position of the menu */
 .visual-changes-menu-relative {
   
 }
 /* When scrolling down, fix the position of the menu at topright of the window */
 .visual-changes-menu-fixed {
-  z-index: 199;
-  /*margin-top: -75px;*/
-  /*margin-left: 81.5%;*/
+  z-index: 1;
   position:fixed;
   width: 70%;
   left:25%;
   top: 0;
 }
-.visual-changes-mediawiki-date
-{
-	display: none;
+/* somehow the datepicker is shown at the bottom of the page when the
+menu is hidden,so hide it at the start its shown later when you click on
+a textfield anyways...!*/
+#ui-datepicker-div{
+	display:none;
 }
 .visual-changes-time-entry
 {
-	width: 20px;
+	width: 4.3em;
 }
 #visual-changes-fromdates
 {
 	float: left;
+	margin-right: 10px;
 }
 #visual-changes-todates
 {
-	float: right;
+	float: left;
 }
 /* For the additions and deletions to the wikitext */
 .vc_addition {
@@ -48,4 +49,14 @@
 #logdiv
 {
     font-size: small;
+}
+
+/* Disable buttons for now */
+#visual-changes-backward-button {
+	display: none;
+}
+
+
+#visual-changes-forward-button{
+	display: none;
 }

@@ -45,8 +45,8 @@ function visualChangesRegisterUnitTests( &$files ) {
 }
  // javascript tests
 $wgHooks['ResourceLoaderTestModules'][] = 'VisualChangesHooks::addJavaScriptTests';
-// @TODO check if this is necessary, i.e. if there are other modules,
-// that will be added...
+// Adding two modules, seperated startup module (init) from rest
+// to makt it easier testable (dont know if this is smart :))
 // Resource loader Information
 $commonModuleInfo = array(
 	'localBasePath' => dirname( __FILE__ ) . '/resources',
@@ -54,7 +54,7 @@ $commonModuleInfo = array(
 );
 
 $wgResourceModules['ext.visualChanges'] = array(
-	'scripts' => 'ext.visualChanges.js',
+	'scripts' => array('ext.visualChanges.UI.js', 'ext.visualChanges.js'),
 	'styles' => 'ext.visualChanges.css',
 	'messages' => array(
 	),
@@ -62,5 +62,14 @@ $wgResourceModules['ext.visualChanges'] = array(
 	),
 ) + $commonModuleInfo;
 
+// the init module adds the html menu etc.
+$wgResourceModules['ext.visualChanges.init'] = array(
+	'scripts' => array('ext.visualChanges.init.js'),
+	'styles' => 'ext.visualChanges.css',
+	'messages' => array(
+	),
+	'dependencies' => array( 'ext.visualChanges'
+	),
+) + $commonModuleInfo;
 
 ?>
