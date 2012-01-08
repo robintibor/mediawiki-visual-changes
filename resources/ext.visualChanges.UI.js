@@ -205,7 +205,7 @@
 								<input type="button" id="visual-changes-submittimes-button" class="visual-changes-upper-menu-entry" value="Show Changes" /> \n\
 							</div>'
 			$( '#content' ).prepend(htmlMenu);
-			// TODO(Robin): amke these into range datepickers see http://jqueryui.com/demos/datepicker/#date-range
+			// TODO(Robin): make these into range datepickers see http://jqueryui.com/demos/datepicker/#date-range
 			$( '#vc-from-date-entry' ).datepicker( {dateFormat: 'mm/dd/yy'} );
 			$( '#vc-to-date-entry' ).datepicker( {dateFormat: 'mm/dd/yy'} );
 			$( '#visual-changes-viewhistory-button' ).click(visualChangesUI.clickViewHistoryButton);
@@ -217,13 +217,6 @@
 									pad(currentDate.getSeconds(), 2);
 			$( '#vc-from-time-entry' ).val( currentTimeString );
 			$( '#vc-to-time-entry' ).val( currentTimeString );
-			// If user scrolls below the position of
-			// the visual-changes-menu, make the menu move to a fixed position on
-			// the screen by changing the class (see ext.visualChanges.css
-			// for styling)
-			var visualChangesMenu = $( '#visual-changes-menu' );
-			var offset = visualChangesMenu.offset();
-			var topOffset = offset.top;
 			$( '#vc-from-date-entry' ).change( visualChangesUI.dateFieldChanged );
 			$( '#vc-from-date-entry' ).keyup( visualChangesUI.dateFieldChanged );
 			$( '#vc-to-date-entry' ).change( visualChangesUI.dateFieldChanged );
