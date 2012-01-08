@@ -69,7 +69,7 @@
 				var toTimeStamp = visualChangesUI.createMediaWikiTimeStamp(inputs.toDay,
 					inputs.toTime.hour, inputs.toTime.minute, inputs.toTime.second);
 				if (fromTimeStamp > toTimeStamp) {
-					alert('fromtime spater als totime');
+					alert('Time to compare from must be before time to compare to.');
 				} else {						
 					visualChangesController.diffTimes(fromTimeStamp, toTimeStamp);
 				}
@@ -188,25 +188,26 @@
 		{
 			// TODO(Robin): find better way/point/position to initialize the menu?
 			var htmlMenu = '<input type="button" id="visual-changes-viewhistory-button" value="View History"></input> \n\
-							<div id="visual-changes-menu" class="visual-changes-menu-relative">\n\
+							<div id="visual-changes-menu">\n\
 								<div id = "visual-changes-datepickers"> \n\
-									<div id = "visual-changes-fromdates">\n\
+									<div id = "visual-changes-fromdates" class="visual-changes-upper-menu-entry">\n\
 										<input type="text" id="vc-from-date-entry"  class="visual-changes-date-entry"/>\n\
-										<input type="number" id="vc-from-time-entry" class = "visual-changes-time-entry"/>\n\
+										<input type="text" id="vc-from-time-entry" class = "visual-changes-time-entry"/>\n\
 									</div>\n\
-									<div id = "visual-changes-todates">\n\
+									<span id="rightarrow" class="visual-changes-upper-menu-entry">&rarr;</span>\n\
+									<div id = "visual-changes-todates" class="visual-changes-upper-menu-entry">\n\
 										<input type="text"id="vc-to-date-entry"  class = "visual-changes-date-entry"/>\n\
-										<input type="number" id="vc-to-time-entry" class = "visual-changes-time-entry"/>\n\
+										<input type="text" id="vc-to-time-entry" class = "visual-changes-time-entry"/>\n\
 									</div>\n\
 								</div>\n\
 								<a id="visual-changes-backward-button" href="#visualchanges">B</a>\n\
 								<a id="visual-changes-forward-button" href="#visualchanges">F</a>\n\
-								<input type="button" id="visual-changes-submittimes-button" value="Show Changes"></input> \n\
+								<input type="button" id="visual-changes-submittimes-button" class="visual-changes-upper-menu-entry" value="Show Changes" /> \n\
 							</div>'
 			$( '#content' ).prepend(htmlMenu);
 			// TODO(Robin): amke these into range datepickers see http://jqueryui.com/demos/datepicker/#date-range
 			$( '#vc-from-date-entry' ).datepicker( {dateFormat: 'mm/dd/yy'} );
-			$( '#vc-to-date-entry' ).datepicker( {dateFormat: 'mm/dd/yy'} );// If user scrolls below the position of
+			$( '#vc-to-date-entry' ).datepicker( {dateFormat: 'mm/dd/yy'} );
 			$( '#visual-changes-viewhistory-button' ).click(visualChangesUI.clickViewHistoryButton);
 			var currentDate = new Date();
 			$( '#vc-from-date-entry' ).datepicker( 'setDate', currentDate );
@@ -216,6 +217,7 @@
 									pad(currentDate.getSeconds(), 2);
 			$( '#vc-from-time-entry' ).val( currentTimeString );
 			$( '#vc-to-time-entry' ).val( currentTimeString );
+			// If user scrolls below the position of
 			// the visual-changes-menu, make the menu move to a fixed position on
 			// the screen by changing the class (see ext.visualChanges.css
 			// for styling)
@@ -230,25 +232,6 @@
 			$( '#vc-from-time-entry' ).keyup( visualChangesUI.timeFieldChanged );
 			$( '#vc-to-time-entry' ).change( visualChangesUI.timeFieldChanged );
 			$( '#vc-to-time-entry' ).keyup( visualChangesUI.timeFieldChanged );
-			$( window ).scroll( function() {
-					var scrollTop = $( window ).scrollTop();
-				console.log("scrollTop: " + scrollTop + " topoffset: "+  topOffset);
-					if ( scrollTop >= topOffset ) {
-						if (visualChangesMenu.hasClass( 'visual-changes-menu-relative' ) ) {
-						  visualChangesMenu.removeClass( 'visual-changes-menu-relative' );
-						  visualChangesMenu.addClass( 'visual-changes-menu-fixed' );
-						}
-					}
-					if ( scrollTop < topOffset ) {
-						alert("removing class");
-							if (visualChangesMenu.hasClass( 'visual-changes-menu-fixed' ) ) {
-						alert("really removing class");
-								visualChangesMenu.removeClass( 'visual-changes-menu-fixed' );
-								visualChangesMenu.addClass( 'visual-changes-menu-relative' );
-							}
-					}
-				}
-			);
 		}
 	}
 } )( jQuery );

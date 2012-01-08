@@ -1,37 +1,41 @@
 #visual-changes-menu {
+  display:none;
   height: 60px;
-  display: none;
-}
-/* For the start position of the menu */
-.visual-changes-menu-relative {
-  
-}
-/* When scrolling down, fix the position of the menu at topright of the window */
-.visual-changes-menu-fixed {
   z-index: 1;
   position:fixed;
-  width: 70%;
-  left:25%;
   top: 0;
+  width: 40em;
 }
+
 /* somehow the datepicker is shown at the bottom of the page when the
 menu is hidden,so hide it at the start its shown later when you click on
 a textfield anyways...!*/
-#ui-datepicker-div{
+#ui-datepicker-div {
 	display:none;
 }
-.visual-changes-time-entry
-{
-	width: 4.3em;
+.visual-changes-time-entry {
+	width: 4.35em;
 }
-#visual-changes-fromdates
-{
+#rightarrow {
+	font-size: xx-large;
+}
+.visual-changes-upper-menu-entry {
 	float: left;
+	padding: 3px;
+	margin-right: 10px
+}
+#vc-from-date-entry {
+	width: 7em;
+}
+#vc-to-date-entry {
+	width: 7em;
+}
+#visual-changes-fromdates {
+    background-color: #FFA500;
 	margin-right: 10px;
 }
-#visual-changes-todates
-{
-	float: left;
+#visual-changes-todates {
+    background-color: #009900;
 }
 /* For the additions and deletions to the wikitext */
 .vc_addition {
@@ -48,6 +52,7 @@ a textfield anyways...!*/
 }
 #logdiv
 {
+	display: none;
     font-size: small;
 }
 
