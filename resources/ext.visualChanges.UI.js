@@ -1,4 +1,3 @@
-
 ( function( $ ) {
 	function pad(number, length)
 	{
@@ -212,6 +211,8 @@
 			var currentDate = new Date();
 			$( '#vc-from-date-entry' ).datepicker( 'setDate', currentDate );
 			$( '#vc-to-date-entry' ).datepicker( 'setDate', currentDate );
+      // for some reason we have to reinitialize current date, otherwise we hours minutes seconds are all 0
+      currentDate = new Date();
 			var currentTimeString = pad(currentDate.getHours(), 2) + ':' +
 									pad(currentDate.getMinutes(), 2) + ':' +
 									pad(currentDate.getSeconds(), 2);
